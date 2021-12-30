@@ -1,14 +1,13 @@
+import argparse
 import os
-
-from keras.preprocessing.text import Tokenizer
-from keras.preprocessing.sequence import pad_sequences
-from keras.applications.xception import Xception
-from keras.models import load_model
 from pickle import load
+
+import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
-import matplotlib.pyplot as plt
-import argparse
+from keras.applications.xception import Xception
+from keras.models import load_model
+from keras.preprocessing.sequence import pad_sequences
 
 
 def extract_features(filename, model):
