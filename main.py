@@ -35,6 +35,7 @@ def word_for_id(integer, tokenizer):
             return word
     return None
 
+
 def generate_desc(model, tokenizer, photo, max_length):
     in_text = ''
     for i in range(max_length):
@@ -48,7 +49,7 @@ def generate_desc(model, tokenizer, photo, max_length):
         if word == 'end':
             break
         else:
-            in_text += ' ' + word
+            in_text += word + " "
     return in_text
 
 
