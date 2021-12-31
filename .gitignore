@@ -222,3 +222,4 @@ cython_debug/
 data/*
 
 models/*
+.vercel
