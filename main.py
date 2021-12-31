@@ -60,7 +60,7 @@ def upload_file():
                 max_length = 32
                 cur_dir = os.getcwd()
                 tokenizer = load(open(os.path.join(cur_dir, 'notebooks', "tokenizer.p"), "rb"))
-                model = load_model(os.path.join(cur_dir, 'models', "model_15.h5"))
+                model = load_model(os.path.join(cur_dir, 'models_in_use', "model_10.h5"))
                 xception_model = Xception(include_top=False, pooling="avg")
 
                 photo = extract_features(file.stream.read(), xception_model)
