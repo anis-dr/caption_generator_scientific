@@ -1,21 +1,97 @@
-import argparse
+import io
 import os
 from pickle import load
 
-import matplotlib.pyplot as plt
+from waitress import serve
+
 import numpy as np
 from PIL import Image
+from flask import Flask, request, flash, jsonify
 from keras.applications.xception import Xception
 from keras.models import load_model
 from keras.preprocessing.sequence import pad_sequences
+from werkzeug.utils import secure_filename
+
+app = Flask(__name__)
+app.secret_key = "secret key"
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+
+ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png'}
 
 
-def extract_features(filename, model):
-    try:
-        image = Image.open(filename)
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-    except:
-        print("ERROR: Couldn't open image! Make sure the image path and extension is correct")
+
+@app.route('/', methods=['GET', 'POST'])
+def upload_file():
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            msg = 'No file part'
+            flash(msg)
+            return jsonify(msg), 400
+
+        file = request.files['file']
+        # if user does not select file, browser also
+        # submit an empty part without filename
+        if file.filename == '':
+            msg = 'No selected file'
+            flash(msg)
+            return jsonify({
+                'status': 'error',
+                'message': msg
+            }), 400
+
+        if not file or not allowed_file(file.filename):
+            msg = 'Allowed image types are -> jpg, jpeg'
+            flash(msg)
+            return jsonify({
+                'status': 'error',
+                'message': msg
+            }), 400
+        else:
+            try:
+                filename = secure_filename(file.filename)
+                print('upload_image filename: ' + filename)
+                msg = 'Image successfully uploaded'
+                flash(msg)
+
+                max_length = 32
+                cur_dir = os.getcwd()
+                tokenizer = load(open(os.path.join(cur_dir, 'notebooks', "tokenizer.p"), "rb"))
+                model = load_model(os.path.join(cur_dir, 'models', "model_15.h5"))
+                xception_model = Xception(include_top=False, pooling="avg")
+
+                photo = extract_features(file.stream.read(), xception_model)
+
+                description = generate_desc(model, tokenizer, photo, max_length)
+                return jsonify({
+                    'status': 'success',
+                    'message': msg,
+                    'description': description
+                }), 200
+            except Exception as e:
+                print(e)
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Error while extracting features'
+                }), 500
+
+    return '''
+    <!doctype html>
+    <title>Upload new File</title>
+    <h1>Upload new File</h1>
+    <form method=post enctype=multipart/form-data>
+      <input type=file name=file>
+      <input type=submit value=Upload>
+    </form>
+    '''
+
+
+def extract_features(image_stream, model):
+    image = Image.open(io.BytesIO(image_stream))
+
     image = image.resize((299, 299))
     image = np.array(image)
     # for images that has 4 channels, we convert them into 3 channels
@@ -25,6 +101,7 @@ def extract_features(filename, model):
     image = image / 127.5
     image = image - 1.0
     feature = model.predict(image)
+
     return feature
 
 
@@ -52,23 +129,5 @@ def generate_desc(model, tokenizer, photo, max_length):
     return in_text
 
 
-if __name__ == '__main__':
-    ap = argparse.ArgumentParser()
-    ap.add_argument('-i', '--image', required=True, help="Image Path")
-    args = vars(ap.parse_args())
-    img_path = args['image']
-
-    # path = 'Flicker8k_Dataset/111537222_07e56d5a30.jpg'
-    max_length = 32
-    cur_dir = os.getcwd()
-    tokenizer = load(open(os.path.join(cur_dir, 'notebooks', "tokenizer.p"), "rb"))
-    model = load_model(os.path.join(cur_dir, 'models', "model_10.h5"))
-    xception_model = Xception(include_top=False, pooling="avg")
-
-    photo = extract_features(img_path, xception_model)
-    img = Image.open(img_path)
-
-    description = generate_desc(model, tokenizer, photo, max_length)
-    print("\n\n")
-    print(description)
-    plt.imshow(img)
+if __name__ == "__main__":
+    app.run(debug=True)
