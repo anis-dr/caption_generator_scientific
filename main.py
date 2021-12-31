@@ -32,6 +32,7 @@ def upload_file():
             flash(msg)
             return jsonify(msg), 400
 
+
         file = request.files['file']
         # if user does not select file, browser also
         # submit an empty part without filename
