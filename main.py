@@ -2,8 +2,6 @@ import io
 import os
 from pickle import load
 
-from waitress import serve
-
 import numpy as np
 from PIL import Image
 from flask import Flask, request, flash, jsonify

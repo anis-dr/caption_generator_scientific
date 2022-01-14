@@ -222,4 +222,5 @@ cython_debug/
 data/*
 
 models/*
+!models/model_10.h5
 .vercel
